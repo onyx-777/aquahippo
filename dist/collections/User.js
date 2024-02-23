@@ -1,6 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Users = void 0;
+const adminAndUser = ({ req: { user } }) => {
+    if (user.role == "admin")
+        return true;
+    return {
+        id: {
+            equals: user.id
+        }
+    };
+};
 exports.Users = {
     slug: "users",
     auth: {
@@ -11,10 +20,36 @@ exports.Users = {
         }
     },
     access: {
-        read: () => true,
+        read: adminAndUser,
         create: () => true,
+        update: ({ req }) => req.user.role === 'admin',
+        delete: ({ req }) => req.user.role === 'admin'
+    },
+    admin: {
+        hidden: ({ user }) => user.role !== 'admin',
+        defaultColumns: ['id']
     },
     fields: [
+        {
+            name: 'products',
+            label: 'Products',
+            admin: {
+                condition: () => false
+            },
+            type: 'relationship',
+            relationTo: 'products',
+            hasMany: true
+        },
+        {
+            name: 'products_files',
+            label: 'Products Files',
+            admin: {
+                condition: () => false
+            },
+            type: 'relationship',
+            relationTo: 'product_files',
+            hasMany: true
+        },
         {
             name: "role",
             type: "select",

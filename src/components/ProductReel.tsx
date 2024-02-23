@@ -28,7 +28,6 @@ const ProductReel = (props: ProductReelProps) => {
     }
     );
 
-    console.log('data : ',queryResults)
 
     const products = queryResults?.pages.flatMap(({item})=>item)
 

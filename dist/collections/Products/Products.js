@@ -10,13 +10,62 @@ const addUser = ({ req, data }) => {
     const user = req.user;
     return Object.assign(Object.assign({}, data), { user: user.id });
 };
+const syncUser = async ({ req, doc }) => {
+    const fullUser = await req.payload.findByID({
+        collection: "users",
+        id: req.user.id,
+    });
+    if (fullUser && typeof fullUser === "object") {
+        const { products } = fullUser;
+        const allIds = [
+            ...((products === null || products === void 0 ? void 0 : products.map((product) => typeof product === "object" ? product.id : product)) || []),
+        ];
+        const createdProductIds = allIds.filter((id, index) => allIds.indexOf(id) === index);
+        const dataToUpdate = [...createdProductIds, doc.id];
+        await req.payload.update({
+            collection: "users",
+            id: fullUser.id,
+            data: {
+                products: dataToUpdate,
+            },
+        });
+    }
+};
+const isAdminOrHasAccess = () => ({ req: { user: _user } }) => {
+    const user = _user;
+    if ((user === null || user === void 0 ? void 0 : user.role) === "admin")
+        return true;
+    if (!user)
+        return false;
+    const userProductIds = (user.products || []).reduce((acc, product) => {
+        if (!product)
+            return acc;
+        if (typeof product === "string") {
+            acc.push(product);
+        }
+        else {
+            acc.push(product.id);
+        }
+        return acc;
+    }, []);
+    return {
+        id: {
+            in: userProductIds,
+        },
+    };
+};
 exports.Products = {
     slug: "products",
     admin: {
         useAsTitle: "name",
     },
-    access: {},
+    access: {
+        read: isAdminOrHasAccess(),
+        update: isAdminOrHasAccess(),
+        delete: isAdminOrHasAccess(),
+    },
     hooks: {
+        afterChange: [syncUser],
         beforeChange: [
             addUser,
             async (args) => {
@@ -29,9 +78,7 @@ exports.Products = {
                             unit_amount: Math.round(data.Price * 100),
                         },
                     });
-                    console.log('create Product : ', createProduct);
                     const updated = Object.assign(Object.assign({}, data), { stripeId: createProduct.id, priceId: createProduct.default_price });
-                    console.log('updated Product : ', updated);
                     return updated;
                 }
                 else if (args.operation === "update") {
@@ -41,7 +88,6 @@ exports.Products = {
                         default_price: data.priceId,
                     });
                     const updated = Object.assign(Object.assign({}, data), { stripeId: updatedProduct.id, priceId: updatedProduct.default_price });
-                    console.log('updated in elseif : ', updated);
                     return updated;
                 }
             },

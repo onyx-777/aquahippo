@@ -35,6 +35,7 @@ const body_parser_1 = __importDefault(require("body-parser"));
 const webhooks_1 = require("./webhooks");
 const build_1 = __importDefault(require("next/dist/build"));
 const path_1 = __importDefault(require("path"));
+const url_1 = require("url");
 const app = (0, express_1.default)();
 const PORT = Number(process.env.PORT) || 3000;
 const createContext = ({ req, res, }) => ({
@@ -45,7 +46,7 @@ const start = async () => {
     const webhookMiddleware = body_parser_1.default.json({
         verify: (req, _, buffer) => {
             req.rawBody = buffer;
-        }
+        },
     });
     const payload = await (0, get_payload_1.getPayloadClient)({
         initOptions: {
@@ -55,16 +56,26 @@ const start = async () => {
             },
         },
     });
+    const cartRouter = express_1.default.Router();
+    cartRouter.use(payload.authenticate);
+    cartRouter.get("/", (req, res) => {
+        const request = req;
+        if (!request.user)
+            return res.redirect("/sign-in?origin=cart");
+        const parsedUrl = (0, url_1.parse)(req.url, true);
+        return next_utils_1.nextApp.render(req, res, "/cart", parsedUrl.query);
+    });
+    app.use('/cart', cartRouter);
     if (process.env.NEXT_BUILD) {
         app.listen(PORT, async () => {
-            payload.logger.info('Next.js is building for production');
+            payload.logger.info("Next.js is building for production");
             //@ts-expect-error
-            await (0, build_1.default)(path_1.default.join(__dirname, '../'));
+            await (0, build_1.default)(path_1.default.join(__dirname, "../"));
             process.exit();
         });
         return;
     }
-    app.post('/api/webhooks/stripe', webhookMiddleware, webhooks_1.stripeWebhookHandler);
+    app.post("/api/webhooks/stripe", webhookMiddleware, webhooks_1.stripeWebhookHandler);
     app.use("/api/trpc", trpcExpress.createExpressMiddleware({
         router: trpc_1.appRouter,
         createContext,

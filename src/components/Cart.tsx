@@ -1,79 +1,133 @@
-"use client"
-import { ShoppingCart } from "lucide-react";
-import React from "react";
+'use client'
+
+import { ShoppingCart } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "./ui/sheet";
-import { Separator } from "./ui/separator";
-import { formatPrice } from "@/lib/utils";
-import Image from "next/image";
-import Link from "next/link";
-import { useCart } from "@/hooks/use-cart";
-import { Product } from "@/payload-types";
-import { ScrollArea } from "./ui/scroll-area";
-import CartItem from "./CartItem";
+} from './ui/sheet'
+import { Separator } from './ui/separator'
+import { formatPrice } from '@/lib/utils'
+import Link from 'next/link'
+import { buttonVariants } from './ui/button'
+import Image from 'next/image'
+import { useCart } from '@/hooks/use-cart'
+import { ScrollArea } from './ui/scroll-area'
+import CartItem from './CartItem'
+import { useEffect, useState } from 'react'
 
 const Cart = () => {
-  const {items} = useCart()
-  const itemCount = items.length;
-  const cartTotal = items.reduce((total, {product}) => total + product.Price, 0);
-  const fee = 1;
+  const { items } = useCart()
+  const itemCount = items.length
+
+  const [isMounted, setIsMounted] = useState<boolean>(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  const cartTotal = items.reduce(
+    (total, { product }) => total + product.Price,
+    0
+  )
+
+  const fee = 1
+
   return (
     <Sheet>
-      <SheetTrigger className="flex items-center space-x-2 outline-none">
-        <div className="flex items-center justify-between w-full gap-2 text-base">
-          <span>
-            <ShoppingCart />
-          </span>
-          <span>{itemCount}</span>
-        </div>
+      <SheetTrigger className='group -m-2 flex items-center p-2'>
+        <ShoppingCart
+          aria-hidden='true'
+          className='h-6 w-6 flex-shrink-0 text-gray-400 group-hover:text-gray-500'
+        />
+        <span className='ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800'>
+          {isMounted ? itemCount : 0}
+        </span>
       </SheetTrigger>
-      <SheetContent>
-        <SheetTitle>
-          <div className="w-full text-center space-x-1">
-            <span>Cart</span>
-            <span>({itemCount})</span>
-          </div>
-        </SheetTitle>
+      <SheetContent className='flex w-full flex-col pr-0 sm:max-w-lg'>
+        <SheetHeader className='space-y-2.5 pr-6'>
+          <SheetTitle>Cart ({itemCount})</SheetTitle>
+        </SheetHeader>
         {itemCount > 0 ? (
           <>
-            <SheetHeader>
-              <div className="w-full text-left mt-6 mb-2 font-medium text-sm text-muted-foreground">
-                <ScrollArea>
-                  {items.map(({product},i)=>(
-                    <CartItem product={product} key={product.id} />
-                  ))}
-                </ScrollArea>
+            <div className='flex w-full flex-col pr-6'>
+              <ScrollArea>
+                {items.map(({ product }) => (
+                  <CartItem
+                    product={product}
+                    key={product.id}
+                  />
+                ))}
+              </ScrollArea>
+            </div>
+            <div className='space-y-4 pr-6'>
+              <Separator />
+              <div className='space-y-1.5 text-sm'>
+                <div className='flex'>
+                  <span className='flex-1'>Shipping</span>
+                  <span>Free</span>
+                </div>
+                <div className='flex'>
+                  <span className='flex-1'>
+                    Transaction Fee
+                  </span>
+                  <span>{formatPrice(fee)}</span>
+                </div>
+                <div className='flex'>
+                  <span className='flex-1'>Total</span>
+                  <span>
+                    {formatPrice(cartTotal + fee)}
+                  </span>
+                </div>
               </div>
-            </SheetHeader>
-            <Separator />
-            <div className="w-full space-y-2 text-muted-foreground">
-              <div className="w-full mt-5 font-medium text-sm flex justify-between items-center">
-                <p>Shipping</p>
-                <p>Free</p>
-              </div>
-              <div className="w-full font-medium text-sm flex justify-between items-center">
-                <p>Transaction Fee</p>
-                <p>{formatPrice(cartTotal+fee)}</p>
-              </div>
+
+              <SheetFooter>
+                <SheetTrigger asChild>
+                  <Link
+                    href='/cart'
+                    className={buttonVariants({
+                      className: 'w-full',
+                    })}>
+                    Continue to Checkout
+                  </Link>
+                </SheetTrigger>
+              </SheetFooter>
             </div>
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center">
-            <Image src='/hippo-empty-cart.png' alt="cart-empty" width={10000} height={10000} className="w-[12rem] h-[12rem]" />
-            <div>
-              <h1 className="font-semibold text-base mt-2 text-center">Your cart is empty</h1>
-              <Link href={'/'}><h1 className="text-blue-500 mt-2 hover:underline underline-offset-2 font-semibold hover:text-blue-700 text-center">Add item to your cart to checkout</h1></Link>
+          <div className='flex h-full flex-col items-center justify-center space-y-1'>
+            <div
+              aria-hidden='true'
+              className='relative mb-4 h-60 w-60 text-muted-foreground'>
+              <Image
+                src='/hippo-empty-cart.png'
+                fill
+                alt='empty shopping cart hippo'
+              />
             </div>
+            <div className='text-xl font-semibold'>
+              Your cart is empty
+            </div>
+            <SheetTrigger asChild>
+              <Link
+                href='/products'
+                className={buttonVariants({
+                  variant: 'link',
+                  size: 'sm',
+                  className:
+                    'text-sm text-muted-foreground',
+                })}>
+                Add items to your cart to checkout
+              </Link>
+            </SheetTrigger>
           </div>
         )}
       </SheetContent>
     </Sheet>
-  );
-};
+  )
+}
 
-export default Cart;
+export default Cart

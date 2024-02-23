@@ -33,7 +33,6 @@ const ProductListing = ({
     ({ value }) => value === product.category
   )?.label
 
-  console.log('product : ',product);
   
 
   const validUrls = product.images

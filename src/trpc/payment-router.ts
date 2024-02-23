@@ -29,9 +29,6 @@ export const paymentRouter = router({
 
       const filteredProducts = products.filter((prod) => Boolean(prod.priceId));
 
-      console.log("products : ", products);
-      console.log("filteredProducts : ", filteredProducts);
-
       const order = await payload.create({
         collection: "orders",
         data: {
@@ -77,23 +74,25 @@ export const paymentRouter = router({
       }
     }),
 
-    pollOrderStatus : privateProcedure.input(z.object({orderId : z.string()})).query(async({input})=>{
-      const {orderId} = input;
+  pollOrderStatus: privateProcedure
+    .input(z.object({ orderId: z.string() }))
+    .query(async ({ input }) => {
+      const { orderId } = input;
 
-      const payload = await getPayloadClient()
+      const payload = await getPayloadClient();
 
-      const {docs : orders} = await payload.find({
-        collection : "orders",
-        where : {
-          id : {
-            equals : orderId
-          }
-        }
-      })
-      if(!orders.length) throw new TRPCError({code : 'NOT_FOUND'})
+      const { docs: orders } = await payload.find({
+        collection: "orders",
+        where: {
+          id: {
+            equals: orderId,
+          },
+        },
+      });
+      if (!orders.length) throw new TRPCError({ code: "NOT_FOUND" });
 
-      const [order] = orders
+      const [order] = orders;
 
-      return {isPaid : order._isPaid}
-    })
+      return { isPaid: order._isPaid };
+    }),
 });

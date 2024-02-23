@@ -25,8 +25,6 @@ exports.paymentRouter = (0, trpc_1.router)({
             },
         });
         const filteredProducts = products.filter((prod) => Boolean(prod.priceId));
-        console.log("products : ", products);
-        console.log("filteredProducts : ", filteredProducts);
         const order = await payload.create({
             collection: "orders",
             data: {
@@ -67,20 +65,22 @@ exports.paymentRouter = (0, trpc_1.router)({
             return { url: null };
         }
     }),
-    pollOrderStatus: trpc_1.privateProcedure.input(zod_1.z.object({ orderId: zod_1.z.string() })).query(async ({ input }) => {
+    pollOrderStatus: trpc_1.privateProcedure
+        .input(zod_1.z.object({ orderId: zod_1.z.string() }))
+        .query(async ({ input }) => {
         const { orderId } = input;
         const payload = await (0, get_payload_1.getPayloadClient)();
         const { docs: orders } = await payload.find({
             collection: "orders",
             where: {
                 id: {
-                    equals: orderId
-                }
-            }
+                    equals: orderId,
+                },
+            },
         });
         if (!orders.length)
-            throw new server_1.TRPCError({ code: 'NOT_FOUND' });
+            throw new server_1.TRPCError({ code: "NOT_FOUND" });
         const [order] = orders;
         return { isPaid: order._isPaid };
-    })
+    }),
 });

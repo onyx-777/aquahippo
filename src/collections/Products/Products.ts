@@ -98,7 +98,6 @@ export const Products: CollectionConfig = {
             },
           });
 
-          console.log("create Product : ", createProduct);
 
           const updated: Product = {
             ...data,
@@ -106,7 +105,6 @@ export const Products: CollectionConfig = {
             priceId: createProduct.default_price as string,
           };
 
-          console.log("updated Product : ", updated);
 
           return updated;
         } else if (args.operation === "update") {
@@ -123,7 +121,6 @@ export const Products: CollectionConfig = {
             priceId: updatedProduct.default_price as string,
           };
 
-          console.log("updated in elseif : ", updated);
 
           return updated;
         }
