@@ -8,8 +8,10 @@ import { inferAsyncReturnType } from "@trpc/server";
 import bodyParser from "body-parser";
 import { IncomingMessage } from "http";
 import { stripeWebhookHandler } from "./webhooks";
-import nextbuild from 'next/dist/build'
+import nextbuild from "next/dist/build";
 import path from "path";
+import { PayloadRequest } from "payload/types";
+import {parse} from 'url'
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -22,19 +24,18 @@ const createContext = ({
   res,
 });
 
-export type ExpressContext = inferAsyncReturnType<typeof createContext>
+export type ExpressContext = inferAsyncReturnType<typeof createContext>;
 
 export type webhookRequest = IncomingMessage & {
-  rawBody : Buffer
-}
+  rawBody: Buffer;
+};
 
 const start = async () => {
-
   const webhookMiddleware = bodyParser.json({
-    verify : (req:webhookRequest, _, buffer)=>{
-      req.rawBody = buffer
-    }
-  })
+    verify: (req: webhookRequest, _, buffer) => {
+      req.rawBody = buffer;
+    },
+  });
 
   const payload = await getPayloadClient({
     initOptions: {
@@ -45,21 +46,36 @@ const start = async () => {
     },
   });
 
-  if(process.env.NEXT_BUILD){
-    app.listen(PORT,async()=>{
-      payload.logger.info('Next.js is building for production')
+  const cartRouter = express.Router();
+
+  cartRouter.use(payload.authenticate);
+
+  cartRouter.get("/", (req, res) => {
+    const request = req as PayloadRequest;
+
+    if (!request.user) return res.redirect("/sign-in?origin=cart");
+
+    const parsedUrl = parse(req.url, true)
+
+    return nextApp.render(req, res, "/cart", parsedUrl.query);
+  });
+
+  app.use('/cart', cartRouter)
+
+  if (process.env.NEXT_BUILD) {
+    app.listen(PORT, async () => {
+      payload.logger.info("Next.js is building for production");
 
       //@ts-expect-error
-      await nextbuild(path.join(__dirname, '../'))
+      await nextbuild(path.join(__dirname, "../"));
 
-      process.exit()
-    })
+      process.exit();
+    });
 
-    return
-
+    return;
   }
 
-  app.post('/api/webhooks/stripe', webhookMiddleware, stripeWebhookHandler)
+  app.post("/api/webhooks/stripe", webhookMiddleware, stripeWebhookHandler);
 
   app.use(
     "/api/trpc",
@@ -79,7 +95,6 @@ const start = async () => {
       );
     });
   });
-
 };
 
 start();
